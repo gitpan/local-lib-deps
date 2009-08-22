@@ -13,7 +13,25 @@ use_ok( $CLASS );
 my $tmp = tempdir( 'test-XXXX', DIR => 't', CLEANUP => 1 );
 $tmp = getcwd() . "/$tmp";
 
-my $one = $CLASS->new( module => 'Fake::Module', base_path => $tmp );
+mkdir("$tmp/CPAN");
+
+my $one = $CLASS->new(
+    module => 'Fake::Module',
+    base_path => $tmp,
+    debug => 1,
+    cpan_config => {
+        cpan_home => "$tmp/CPAN",
+        build_dir => "$tmp/CPAN/build",
+        build_requires_install_policy => 'yes',
+        prerequisites_policy => 'follow',
+        urllist => [q[http://cpan.cpantesters.org/]],
+        auto_commit => q[0],
+        build_dir_reuse => q[0],
+        keep_source_where => q[/home/exodist/.cpan/sources],
+        makepl_arg => "",
+        mbuildpl_arg => "",
+    }
+);
 my $origin = getcwd();
 
 {

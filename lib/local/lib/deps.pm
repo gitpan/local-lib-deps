@@ -16,27 +16,79 @@ local::lib::deps - Maintain a module specific lib path for that modules dependen
 Maintaining perl module dependencies through a distributions package manager
 can be a real pain. This module helps by making it easier to simply bundle all
 your applications dependencies into one lib path specific to the module. It
-also makes it easy to tell your applicatin where to look for modules.
+also makes it easy to tell your application where to look for modules.
 
 =head1 SYNOPSYS
 
-Bootstrap your modules dependency area:
+Bootstrap your modules dependency area in the default location:
 
-TODO
+    use local::lib::deps;
+    $local::lib::deps->install_deps( 'My::Module', 'Dep::One', 'Dep::Two' );
+
+Bootstrap your modules dependency area in a custom location:
+
+    use local::lib::deps;
+    $moduledeps = local::lib::deps->new(
+        base_path => '/path/to/dep/storage',
+    );
+    $moduledeps->install_deps( 'My::Module', 'Dep::One', 'Dep::Two', ... );
 
 This will create a directory specifically for the My::Module namespace and
 install the specified dependencies (and local::lib) there.
 
 To use those deps in your app:
 
-    use local::lib::deps qw/ My::Module /;
+    use local::lib::deps qw/ My::Module My::ModuleTwo/;
     use Dep::One;
+
+or
+
+    use local::lib::deps;
+    BEGIN {
+        $moduledeps = local::lib::deps->new(
+            base_path => '/path/to/dep/storage',
+        );
+        $moduledeps->add_paths( qw/ My::Module My::ModuleTwo/ );
+    }
+    use Dep::One;
+
 
 To initiate local::lib with the destination directory of your module:
 
-TODO
+    use local::lib::deps -locallib => 'My::Module';
+
+or
+
+    use local::lib::deps;
+    $moduledeps = local::lib::deps->new(
+        module => 'My::Module',
+        base_path => '/path/to/dep/storage',
+    );
+    $moduledeps->locallib;
 
 =head1 USE CASES
+
+The primary use case for this module is installing dependencies for an
+application that would conflict in some way with the systems perl or module
+configuration. It is also useful for applications that have a lot of
+dependancies for which no distribution specific packages exist. This becomes
+even more critical when you have a sysadmin that abhors using cpan instead of
+distro packages.
+
+Using this module as an end user is not very effective. You could potentially
+rig your application to install all the dependencies necessary to the users
+home directory every time it is run. This is a bad idea, each user would have
+their own copy fo the dependencies, and every run it will try to update all the
+deps.
+
+A better idea is to use this module in your build scripts (Module::Build, or
+Module::Install). The idea would be to have your 'make' or 'build' task
+bootstrap the deps folder. Then when the application installs the deps will
+install as well, but in a way that does not interfer with the rest of the
+system.
+
+This is even more useful when you are building a package as you can bundle the
+dependences in your package.
 
 =head1 PUBLIC METHODS
 
@@ -44,7 +96,7 @@ TODO
 
 =cut
 
-our $VERSION = 0.03;
+our $VERSION = 0.04;
 our %PATHS_ADDED;
 
 sub import {
@@ -61,7 +113,7 @@ sub import {
         $package->locallib( @modules );
         return;
     }
-    $package->_add_path( $_ ) for @modules;
+    $package->add_paths( @modules );
 }
 
 =item new( module => 'My::Module', base_path => 'path/to/module/libs' )
@@ -74,6 +126,12 @@ sub new {
     my ( $class, %params ) = @_;
     $class = ref $class || $class;
     return bless( { %params }, $class );
+}
+
+sub add_paths {
+    my $self = shift;
+    my  @modules = @_;
+    $self->_add_path( $_ ) for @modules;
 }
 
 =item locallib( $module )
@@ -203,9 +261,17 @@ sub _install_deps {
 
     require CPAN;
     CPAN::HandleConfig->load();
+    $CPAN::Config = {
+        %{ $CPAN::Config },
+        %{ $self->{ cpan_config }},
+    };
     CPAN::Shell::setup_output();
     CPAN::Index->reload();
-    local $CPAN::Config->{build_requires_install_policy} = 'yes';
+    if ( $self->{ debug } ) {
+        require Data::Dumper;
+        Data::Dumper->import;
+        print Dumper({ ENV => \%ENV, Config => $CPAN::Config });
+    }
     {
         local $CPAN::Config->{makepl_arg} = '--bootstrap=' . $self->_full_module_path( $pkg );
         CPAN::Shell->install( 'local::lib' );
@@ -215,7 +281,6 @@ sub _install_deps {
     $self->locallib( $pkg );
 
     foreach my $dep ( @deps ) {
-        print "****** $dep *******\n";
         CPAN::Shell->install( $dep );
     }
 

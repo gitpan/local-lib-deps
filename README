@@ -6,27 +6,78 @@ DESCRIPTION
     Maintaining perl module dependencies through a distributions package
     manager can be a real pain. This module helps by making it easier to
     simply bundle all your applications dependencies into one lib path
-    specific to the module. It also makes it easy to tell your applicatin
+    specific to the module. It also makes it easy to tell your application
     where to look for modules.
 
 SYNOPSYS
-    Bootstrap your modules dependency area:
+    Bootstrap your modules dependency area in the default location:
 
-    TODO
+        use local::lib::deps;
+        $local::lib::deps->install_deps( 'My::Module', 'Dep::One', 'Dep::Two' );
+
+    Bootstrap your modules dependency area in a custom location:
+
+        use local::lib::deps;
+        $moduledeps = local::lib::deps->new(
+            base_path => '/path/to/dep/storage',
+        );
+        $moduledeps->install_deps( 'My::Module', 'Dep::One', 'Dep::Two', ... );
 
     This will create a directory specifically for the My::Module namespace
     and install the specified dependencies (and local::lib) there.
 
     To use those deps in your app:
 
-        use local::lib::deps qw/ My::Module /;
+        use local::lib::deps qw/ My::Module My::ModuleTwo/;
+        use Dep::One;
+
+    or
+
+        use local::lib::deps;
+        BEGIN {
+            $moduledeps = local::lib::deps->new(
+                base_path => '/path/to/dep/storage',
+            );
+            $moduledeps->add_paths( qw/ My::Module My::ModuleTwo/ );
+        }
         use Dep::One;
 
     To initiate local::lib with the destination directory of your module:
 
-    TODO
+        use local::lib::deps -locallib => 'My::Module';
+
+    or
+
+        use local::lib::deps;
+        $moduledeps = local::lib::deps->new(
+            module => 'My::Module',
+            base_path => '/path/to/dep/storage',
+        );
+        $moduledeps->locallib;
 
 USE CASES
+    The primary use case for this module is installing dependencies for an
+    application that would conflict in some way with the systems perl or
+    module configuration. It is also useful for applications that have a lot
+    of dependancies for which no distribution specific packages exist. This
+    becomes even more critical when you have a sysadmin that abhors using
+    cpan instead of distro packages.
+
+    Using this module as an end user is not very effective. You could
+    potentially rig your application to install all the dependencies
+    necessary to the users home directory every time it is run. This is a
+    bad idea, each user would have their own copy fo the dependencies, and
+    every run it will try to update all the deps.
+
+    A better idea is to use this module in your build scripts
+    (Module::Build, or Module::Install). The idea would be to have your
+    'make' or 'build' task bootstrap the deps folder. Then when the
+    application installs the deps will install as well, but in a way that
+    does not interfer with the rest of the system.
+
+    This is even more useful when you are building a package as you can
+    bundle the dependences in your package.
+
 PUBLIC METHODS
     new( module => 'My::Module', base_path => 'path/to/module/libs' )
         Create a new local::lib::deps object.
@@ -76,6 +127,6 @@ POD ERRORS
     Hey! The above document had some coding errors, which are explained
     below:
 
-    Around line 160:
+    Around line 218:
         You forgot a '=back' before '=head1'
 
