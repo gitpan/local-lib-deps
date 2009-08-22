@@ -22,8 +22,7 @@ also makes it easy to tell your applicatin where to look for modules.
 
 Bootstrap your modules dependency area:
 
-    use local::lib::deps '-import'; #import the public functions instead of bringing in a modules path.
-    install_deps( 'My::Module', qw/Dep::One Dep::Two .../ );
+TODO
 
 This will create a directory specifically for the My::Module namespace and
 install the specified dependencies (and local::lib) there.
@@ -35,30 +34,18 @@ To use those deps in your app:
 
 To initiate local::lib with the destination directory of your module:
 
-    use local::lib::deps -locallib 'My::Module';
+TODO
 
-=head1 PUBLIC FUNCTIONS
+=head1 USE CASES
 
-To bring these in to your program do this:
-
-    use local::lib::deps -import;
+=head1 PUBLIC METHODS
 
 =over 4
 
 =cut
 
-use base 'Exporter';
-our @EXPORT = qw/locallib install_deps/;
-
-our $VERSION = 0.02;
-
-our $LLPATH;
-BEGIN {
-    $LLPATH = __FILE__;
-    $LLPATH =~ s,/[^/]*$,,ig;
-    $LLPATH .= '/deps';
-    #$LLPATH = getcwd . "/$PATH" unless ( $PATH =~ m,^/, );
-}
+our $VERSION = 0.03;
+our %PATHS_ADDED;
 
 sub import {
     my ( $package, @params ) = @_;
@@ -69,55 +56,115 @@ sub import {
         my ($module) = caller;
         @modules = ( $module );
     }
-    if ( $flags{'import'} ) {
-        @params = grep { $_ ne '-import' } @params;
-        @_ = ( $package, @params );
-        goto &Exporter::import;
-    }
     if ( $flags{locallib} ) {
         die( "Can only specify one module to use with the -locallib flag.\n" ) if @modules > 1;
-        locallib( @modules );
+        $package->locallib( @modules );
         return;
     }
-    _add_path( $_ ) for @modules;
+    $package->_add_path( $_ ) for @modules;
+}
+
+=item new( module => 'My::Module', base_path => 'path/to/module/libs' )
+
+Create a new local::lib::deps object.
+
+=cut
+
+sub new {
+    my ( $class, %params ) = @_;
+    $class = ref $class || $class;
+    return bless( { %params }, $class );
 }
 
 =item locallib( $module )
 
-Will get local::lib setup against the local::lib::deps dir for the specified module.
+Will get local::lib setup against the local::lib::deps dir. If called as a
+class method $module is manditory, if called as an object method $module is
+ignored.
 
 =cut
 
 sub locallib {
-    my ( $module ) = @_;
-    my $mpath = _full_module_path( $module );
-    _add_path( $module );
-    my $eval = "use local::lib '$mpath'";
-    eval $eval;
+    my ( $self, $module ) = @_;
+    $module = $self->module if $self->is_object;
+    my $mpath = $self->_full_module_path( $module );
+    $self->_add_path( $module );
+    eval "use local::lib '$mpath'";
     die( $@ ) if $@;
 }
 
 =item install_deps( $module, @deps )
 
 This will bootstrap local::lib into a local::lib::deps folder for the specified
-module, it will then continue to install (or update) allt he dependency
+module, it will then continue to install (or update) all the dependency
 modules.
 
 =cut
 
 sub install_deps {
-    my ($pkg, @deps) = @_;
+    my ( $self, $pkg, @deps) = @_;
     print "Forking child process to run cpan...\n";
     if ( my $pid = fork ) {
         waitpid( $pid, 0 );
     }
     else {
-        _install_deps( $pkg, @deps );
+        $self->_install_deps( $pkg, @deps );
         exit;
     }
 }
 
+sub is_object {
+    my $self = shift;
+    return ref $self ? 1 : 0;
+}
+
+=back
+
+=head1 ACCESSOR METHODS
+
+=over 4
+
+=item module()
+
+=cut
+
+sub module {
+    my $self = shift;
+    return unless $self->is_object;
+    return $self->{ module };
+}
+
+=item base_path()
+
+Returns the base path that contains the module dependancy areas. This is
+documented because you may wish to override this in an application specific
+subclass.
+
+=cut
+
+sub base_path {
+    my $self = shift;
+    if ( $self->is_object ) {
+        return $self->{ base_path } if $self->{ base_path };
+    }
+
+    my $llpath = __FILE__;
+    $llpath =~ s,/[^/]*$,,ig;
+    $llpath .= '/deps';
+
+    $self->{ base_path } = $llpath if ( $self->is_object );
+
+    return $llpath;
+}
+
+=head1 OTHER METHODS
+
+=over 4
+
+=cut
+
 sub _module_path {
+    my $self = shift;
     my ( $module ) = @_;
     my $mpath = $module;
     $mpath =~ s,::,/,g;
@@ -125,26 +172,32 @@ sub _module_path {
 }
 
 sub _full_module_path {
-    return join( "/", $LLPATH, _module_path( @_ ));
+    my $self = shift;
+    return join( "/", $self->base_path(), $self->_module_path( @_ ));
 }
 
-my %_path_added;
 sub _add_path {
+    my $self = shift;
     my ( $module ) = @_;
-    return if $_path_added{ $module };
-    unshift @INC, _path( $module ), _arch_path( $module );
-    $_path_added{ $module }++;
+
+    for my $path ( $self->_path( $module ), $self->_arch_path( $module )) {
+        next if $PATHS_ADDED{ $path }++;
+        unshift @INC, $path;
+    }
 }
 
 sub _path {
-    return join( "/", _full_module_path( @_ ), "lib/perl5" );
+    my $self = shift;
+    return join( "/", $self->_full_module_path( @_ ), "lib/perl5" );
 }
 
 sub _arch_path {
-    return join( "/", _path( @_ ), $Config{archname});
+    my $self = shift;
+    return join( "/", $self->_path( @_ ), $Config{archname});
 }
 
 sub _install_deps {
+    my $self = shift;
     my ($pkg, @deps) = @_;
     my $origin = getcwd();
 
@@ -154,14 +207,15 @@ sub _install_deps {
     CPAN::Index->reload();
     local $CPAN::Config->{build_requires_install_policy} = 'yes';
     {
-        local $CPAN::Config->{makepl_arg} = '--bootstrap=' . _full_module_path( $pkg );
+        local $CPAN::Config->{makepl_arg} = '--bootstrap=' . $self->_full_module_path( $pkg );
         CPAN::Shell->install( 'local::lib' );
     }
 
     # We want to install to the locallib.
-    locallib( $pkg );
+    $self->locallib( $pkg );
 
     foreach my $dep ( @deps ) {
+        print "****** $dep *******\n";
         CPAN::Shell->install( $dep );
     }
 
@@ -185,7 +239,7 @@ __END__
 
 =head1 COPYRIGHT
 
-Copyright (C) 2004-2007 OpenSourcery, LLC
+Copyright (C) 2009 OpenSourcery, LLC
 
 local-lib-deps is free software; you can redistribute it and/or modify it
 under the terms of the GNU General Public License as published by the Free

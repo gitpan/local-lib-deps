@@ -1,7 +1,7 @@
 ---
-abstract: 'This module uses local::lib to allow applications to maintain a private path of dependancy modules.'
+abstract: 'This module is for testing lib-local-deps'
 author:
-  - '=over 4'
+  - 'Chad Granum <chad@opensourcery.com>'
 build_requires:
   ExtUtils::MakeMaker: 6.42
 configure_requires:
@@ -12,14 +12,13 @@ license: gpl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
   version: 1.4
-name: local-lib-deps
+name: local-lib-deps-testmodule
 no_index:
   directory:
     - inc
     - t
 requires:
-  CPAN: 1.9
-  Config: 0
+  perl: 5.6.0
 resources:
   license: http://opensource.org/licenses/gpl-license.php
-version: 0.03
+version: 0.01

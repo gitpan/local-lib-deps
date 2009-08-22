@@ -1,0 +1,81 @@
+NAME
+    local::lib::deps - Maintain a module specific lib path for that modules
+    dependencies.
+
+DESCRIPTION
+    Maintaining perl module dependencies through a distributions package
+    manager can be a real pain. This module helps by making it easier to
+    simply bundle all your applications dependencies into one lib path
+    specific to the module. It also makes it easy to tell your applicatin
+    where to look for modules.
+
+SYNOPSYS
+    Bootstrap your modules dependency area:
+
+    TODO
+
+    This will create a directory specifically for the My::Module namespace
+    and install the specified dependencies (and local::lib) there.
+
+    To use those deps in your app:
+
+        use local::lib::deps qw/ My::Module /;
+        use Dep::One;
+
+    To initiate local::lib with the destination directory of your module:
+
+    TODO
+
+USE CASES
+PUBLIC METHODS
+    new( module => 'My::Module', base_path => 'path/to/module/libs' )
+        Create a new local::lib::deps object.
+
+    locallib( $module )
+        Will get local::lib setup against the local::lib::deps dir. If
+        called as a class method $module is manditory, if called as an
+        object method $module is ignored.
+
+    install_deps( $module, @deps )
+        This will bootstrap local::lib into a local::lib::deps folder for
+        the specified module, it will then continue to install (or update)
+        all the dependency modules.
+
+ACCESSOR METHODS
+    module()
+    base_path()
+        Returns the base path that contains the module dependancy areas.
+        This is documented because you may wish to override this in an
+        application specific subclass.
+
+OTHER METHODS
+AUTHORS
+    Chad Granum chad@opensourcery.com
+
+COPYRIGHT
+    Copyright (C) 2009 OpenSourcery, LLC
+
+    local-lib-deps is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by the
+    Free Software Foundation; either version 2 of the License, or (at your
+    option) any later version.
+
+    local-lib-deps is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+    Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+    local-lib-deps is packaged with a copy of the GNU General Public
+    License. Please see docs/COPYING in this distribution.
+
+POD ERRORS
+    Hey! The above document had some coding errors, which are explained
+    below:
+
+    Around line 160:
+        You forgot a '=back' before '=head1'
+
