@@ -96,7 +96,7 @@ dependences in your package.
 
 =cut
 
-our $VERSION = 0.05;
+our $VERSION = 0.06;
 our %PATHS_ADDED;
 
 sub import {

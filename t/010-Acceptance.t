@@ -14,7 +14,7 @@ my $CLASS = 'local::lib::deps';
 
 use_ok( $CLASS );
 
-my $tmp = tempdir( 'test-XXXX', DIR => $DIR, CLEANUP => 0 );
+my $tmp = tempdir( 'test-XXXX', DIR => $DIR, CLEANUP => 1 );
 $tmp = getcwd() . "/$tmp";
 
 mkdir("$tmp/CPAN");
