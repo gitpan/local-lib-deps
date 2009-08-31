@@ -6,16 +6,3 @@ META.yml
 README
 t/000-Unit.t
 t/010-Acceptance.t
-t/res/local-lib-deps-testmodule/inc/Module/Install.pm
-t/res/local-lib-deps-testmodule/inc/Module/Install/Base.pm
-t/res/local-lib-deps-testmodule/inc/Module/Install/Can.pm
-t/res/local-lib-deps-testmodule/inc/Module/Install/Fetch.pm
-t/res/local-lib-deps-testmodule/inc/Module/Install/Makefile.pm
-t/res/local-lib-deps-testmodule/inc/Module/Install/Metadata.pm
-t/res/local-lib-deps-testmodule/inc/Module/Install/Win32.pm
-t/res/local-lib-deps-testmodule/inc/Module/Install/WriteAll.pm
-t/res/local-lib-deps-testmodule/lib/local/lib/deps/testmodule.pm
-t/res/local-lib-deps-testmodule/Makefile
-t/res/local-lib-deps-testmodule/Makefile.PL
-t/res/local-lib-deps-testmodule/META.yml
-t/res/local-lib-deps-testmodule/t/000-test.t

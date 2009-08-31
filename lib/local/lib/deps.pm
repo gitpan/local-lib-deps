@@ -96,7 +96,7 @@ dependences in your package.
 
 =cut
 
-our $VERSION = 0.04;
+our $VERSION = 0.05;
 our %PATHS_ADDED;
 
 sub import {
@@ -116,7 +116,7 @@ sub import {
     $package->add_paths( @modules );
 }
 
-=item new( module => 'My::Module', base_path => 'path/to/module/libs' )
+=item new( module => 'My::Module', base_path => 'path/to/module/libs', cpan_config => {...}, debug => 0 )
 
 Create a new local::lib::deps object.
 
@@ -127,6 +127,12 @@ sub new {
     $class = ref $class || $class;
     return bless( { %params }, $class );
 }
+
+=item add_paths( qw/ Module::One Module::Two /)
+
+Add the local::lib path for the specified module to @INC;
+
+=cut
 
 sub add_paths {
     my $self = shift;
@@ -139,6 +145,9 @@ sub add_paths {
 Will get local::lib setup against the local::lib::deps dir. If called as a
 class method $module is manditory, if called as an object method $module is
 ignored.
+
+This is different from add_paths in that any module you install after this will
+be installed to the specified modules local-lib dir.
 
 =cut
 
@@ -171,9 +180,17 @@ sub install_deps {
     }
 }
 
+=item is_object()
+
+Used internally, documented for completeness. Determines if $self is an object,
+or the package.
+
+=cut
+
 sub is_object {
     my $self = shift;
-    return ref $self ? 1 : 0;
+    return unless ref $self;
+    return UNIVERSAL::isa( $self, 'UNIVERSAL' );
 }
 
 =back
@@ -215,6 +232,17 @@ sub base_path {
     return $llpath;
 }
 
+=item cpan_config
+
+Get the cpan_config hashref.
+
+=cut
+
+sub cpan_config {
+    my $self = shift;
+    return $self->{ cpan_config };
+}
+
 =head1 OTHER METHODS
 
 =over 4
@@ -242,6 +270,8 @@ sub _add_path {
         next if $PATHS_ADDED{ $path }++;
         unshift @INC, $path;
     }
+    #Shamelessly copied from local::lib;
+    $ENV{PERL5LIB} = join( $Config{path_sep}, @INC );
 }
 
 sub _path {
@@ -263,7 +293,7 @@ sub _install_deps {
     CPAN::HandleConfig->load();
     $CPAN::Config = {
         %{ $CPAN::Config },
-        %{ $self->{ cpan_config }},
+        %{ $self->cpan_config },
     };
     CPAN::Shell::setup_output();
     CPAN::Index->reload();

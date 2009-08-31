@@ -2,15 +2,19 @@ use strict;
 use warnings;
 use Cwd;
 
-use Test::More 'no_plan';
+my $DIR;
+BEGIN { $DIR = -w 't' ? 't' : -w "/tmp" ? "/tmp" : -w "." ? "." : undef }
+
+use Test::More $DIR ? (tests => 8) : (skip_all => "No writable temp directory!");
 use Data::Dumper;
 use File::Temp qw/tempdir/;
+use File::Copy;
 
 my $CLASS = 'local::lib::deps';
 
 use_ok( $CLASS );
 
-my $tmp = tempdir( 'test-XXXX', DIR => 't', CLEANUP => 1 );
+my $tmp = tempdir( 'test-XXXX', DIR => $DIR, CLEANUP => 0 );
 $tmp = getcwd() . "/$tmp";
 
 mkdir("$tmp/CPAN");
@@ -27,12 +31,11 @@ my $one = $CLASS->new(
         urllist => [q[http://cpan.cpantesters.org/]],
         auto_commit => q[0],
         build_dir_reuse => q[0],
-        keep_source_where => q[/home/exodist/.cpan/sources],
+        keep_source_where => "$tmp/CPAN/sources",
         makepl_arg => "",
         mbuildpl_arg => "",
     }
 );
-my $origin = getcwd();
 
 {
     diag "Hiding output from cpan build... this could take some time.\n";
@@ -46,9 +49,7 @@ my $origin = getcwd();
     open( STDERR, ">&STDOUT" );
 }
 
-chdir( getcwd() . "/t/res/local-lib-deps-testmodule" );
-$one->install_deps( 'Fake::Module', '.' );
-chdir( $origin );
+$one->install_deps( 'Fake::Module', 'local::lib::deps::testmodule' );
 
 close( STDOUT );
 close( STDERR );
@@ -66,14 +67,13 @@ if ( $fails ) {
     close( $LOG );
 }
 
+eval 'require local::lib::deps::testmodule';
+ok( $@, "Could not use module that is in locallib yet." );
+ok( ! $local::lib::deps::testmodule::VERSION, "local::lib::deps::testmodule is not loaded." );
+
 ok( ! ( grep { $_ =~ m,$tmp/Fake/Module/lib/perl5/, } @INC ), "Path not yet in \@INC" );
 $one->import( "Fake::Module" );
 ok(( grep { $_ =~ m,$tmp/Fake/Module/lib/perl5/, } @INC ), "Path now in \@INC" );
 
-
-#eval 'use CPAN::Test::Dummy::Perl5::Build';
-#ok( $@, "Could not use module that is in locallib yet." );
-
-
-#eval 'use CPAN::Test::Dummy::Perl5::Build';
-#ok( ! $@, "Can now use the module" );
+eval 'require local::lib::deps::testmodule';
+ok( $local::lib::deps::testmodule::VERSION, 'local::lib::deps::testmodule is loaded.' );

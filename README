@@ -79,18 +79,29 @@ USE CASES
     bundle the dependences in your package.
 
 PUBLIC METHODS
-    new( module => 'My::Module', base_path => 'path/to/module/libs' )
+    new( module => 'My::Module', base_path => 'path/to/module/libs',
+    cpan_config => {...}, debug => 0 )
         Create a new local::lib::deps object.
+
+    add_paths( qw/ Module::One Module::Two /)
+        Add the local::lib path for the specified module to @INC;
 
     locallib( $module )
         Will get local::lib setup against the local::lib::deps dir. If
         called as a class method $module is manditory, if called as an
         object method $module is ignored.
 
+        This is different from add_paths in that any module you install
+        after this will be installed to the specified modules local-lib dir.
+
     install_deps( $module, @deps )
         This will bootstrap local::lib into a local::lib::deps folder for
         the specified module, it will then continue to install (or update)
         all the dependency modules.
+
+    is_object()
+        Used internally, documented for completeness. Determines if $self is
+        an object, or the package.
 
 ACCESSOR METHODS
     module()
@@ -98,6 +109,9 @@ ACCESSOR METHODS
         Returns the base path that contains the module dependancy areas.
         This is documented because you may wish to override this in an
         application specific subclass.
+
+    cpan_config
+        Get the cpan_config hashref.
 
 OTHER METHODS
 AUTHORS
@@ -127,6 +141,6 @@ POD ERRORS
     Hey! The above document had some coding errors, which are explained
     below:
 
-    Around line 218:
+    Around line 246:
         You forgot a '=back' before '=head1'
 
