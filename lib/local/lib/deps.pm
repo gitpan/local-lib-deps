@@ -96,7 +96,7 @@ dependences in your package.
 
 =cut
 
-our $VERSION = 0.06;
+our $VERSION = 0.07;
 our %PATHS_ADDED;
 
 sub import {
@@ -219,17 +219,24 @@ subclass.
 
 sub base_path {
     my $self = shift;
+    my $class = $self;
     if ( $self->is_object ) {
         return $self->{ base_path } if $self->{ base_path };
+        $class = ref $self;
     }
 
-    my $llpath = __FILE__;
-    $llpath =~ s,/[^/]*$,,ig;
-    $llpath .= '/deps';
+#    my $llpath = __FILE__;
+#    $llpath =~ s,/[^/]*$,,ig;
+#    $llpath .= '/deps';
 
-    $self->{ base_path } = $llpath if ( $self->is_object );
+    my $file = $INC{ join("/", split('::', $class)) . ".pm" } || __FILE__;
+    my $path = $file;
+    $path =~ s,/[^/]*$,,ig;
+    $path .= '/deps';
 
-    return $llpath;
+    $self->{ base_path } = $path if ( $self->is_object );
+
+    return $path;
 }
 
 =item cpan_config
