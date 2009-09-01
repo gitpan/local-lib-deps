@@ -10,7 +10,7 @@ BEGIN { $DIR = -w 't' ? 't' : -w "/tmp" ? "/tmp" : -w "." ? "." : undef }
 use base 'Test::More';
 use Test::More;
 
-our @EXPORT = qw/ get_tmp hide_out unhide_out cpan_config /;
+our @EXPORT = qw/ get_tmp hide_out unhide_out cpan_config show_fails/;
 
 sub import {
     my ( $package, @params ) = @_;

@@ -42,11 +42,11 @@ my $one = Fake::Module::deps->new(
 
 is( $one->base_path, "$tmp/lib/Fake/Module/deps" );
 
-hide_out( $tmp );
+#hide_out( $tmp );
 $one->install_deps( 'Fake::Module', 'local::lib::deps::testmodule' );
-unhide_out();
+#unhide_out();
 
 my $fails = 0;
 ok( -e( $tmp . '/lib/Fake/Module/deps/lib/perl5/local/lib.pm'), "locallib installed to the correct place." ) || $fails++;
 ok( -e( $tmp . '/lib/Fake/Module/deps/lib/perl5/local/lib/deps/testmodule.pm'), "dummy installed to the correct place." ) || $fails++;
-show_fails($tmp) if ( $fails );
+#show_fails($tmp) if ( $fails );

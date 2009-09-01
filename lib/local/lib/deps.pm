@@ -96,8 +96,9 @@ dependences in your package.
 
 =cut
 
-our $VERSION = 0.07;
+our $VERSION = 0.08;
 our %PATHS_ADDED;
+our $START_PATH = getcwd();
 
 sub import {
     my ( $package, @params ) = @_;
@@ -154,7 +155,7 @@ be installed to the specified modules local-lib dir.
 sub locallib {
     my ( $self, $module ) = @_;
     $module = $self->module if $self->is_object;
-    my $mpath = $self->_full_module_path( $module );
+    my $mpath = __absolute_path( $self->_full_module_path( $module ));
     $self->_add_path( $module );
     eval "use local::lib '$mpath'";
     die( $@ ) if $@;
@@ -274,6 +275,7 @@ sub _add_path {
     my ( $module ) = @_;
 
     for my $path ( $self->_path( $module ), $self->_arch_path( $module )) {
+        $path = __absolute_path( $path );
         next if $PATHS_ADDED{ $path }++;
         unshift @INC, $path;
     }
@@ -291,6 +293,14 @@ sub _arch_path {
     return join( "/", $self->_path( @_ ), $Config{archname});
 }
 
+sub __absolute_path {
+    my ( $dir ) = @_;
+    if ( $dir !~ m,^/, ) {
+        return "$START_PATH/$dir";
+    }
+    return $dir;
+}
+
 sub _install_deps {
     my $self = shift;
     my ($pkg, @deps) = @_;
@@ -304,18 +314,19 @@ sub _install_deps {
     };
     CPAN::Shell::setup_output();
     CPAN::Index->reload();
-    if ( $self->{ debug } ) {
-        require Data::Dumper;
-        Data::Dumper->import;
-        print Dumper({ ENV => \%ENV, Config => $CPAN::Config });
-    }
     {
-        local $CPAN::Config->{makepl_arg} = '--bootstrap=' . $self->_full_module_path( $pkg );
+        local $CPAN::Config->{makepl_arg} = '--bootstrap=' . __absolute_path( $self->_full_module_path( $pkg ));
         CPAN::Shell->install( 'local::lib' );
     }
 
     # We want to install to the locallib.
+    chdir( $origin );
     $self->locallib( $pkg );
+    if ( $self->{ debug } ) {
+        require Data::Dumper;
+        Data::Dumper->import;
+        print Dumper({ INC => \@INC, ENV => \%ENV, Config => $CPAN::Config });
+    }
 
     foreach my $dep ( @deps ) {
         CPAN::Shell->install( $dep );
