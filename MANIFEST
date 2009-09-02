@@ -15,3 +15,4 @@ README
 t/000-Unit.t
 t/010-Acceptance.t
 t/020-subclass.t
+t/030-Force.t

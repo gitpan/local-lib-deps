@@ -96,9 +96,10 @@ dependences in your package.
 
 =cut
 
-our $VERSION = 0.08;
+our $VERSION = 0.09;
 our %PATHS_ADDED;
 our $START_PATH = getcwd();
+our %INITIALIZED;
 
 sub import {
     my ( $package, @params ) = @_;
@@ -177,6 +178,18 @@ sub install_deps {
     }
     else {
         $self->_install_deps( $pkg, @deps );
+        exit;
+    }
+}
+
+sub force_deps {
+    my ( $self, $pkg, @deps) = @_;
+    print "Forking child process to run cpan (force)...\n";
+    if ( my $pid = fork ) {
+        waitpid( $pid, 0 );
+    }
+    else {
+        $self->_force_deps( $pkg, @deps );
         exit;
     }
 }
@@ -301,9 +314,20 @@ sub __absolute_path {
     return $dir;
 }
 
+sub _force_deps {
+    my $self = shift;
+    $self->_do_deps( 'force', @_ );
+}
+
 sub _install_deps {
     my $self = shift;
-    my ($pkg, @deps) = @_;
+    $self->_do_deps( 'normal', @_ );
+}
+
+#our %INITIALIZED;
+sub _do_deps {
+    my $self = shift;
+    my ($mode, $pkg, @deps) = @_;
     my $origin = getcwd();
 
     require CPAN;
@@ -314,7 +338,8 @@ sub _install_deps {
     };
     CPAN::Shell::setup_output();
     CPAN::Index->reload();
-    {
+
+    unless ( $INITIALIZED{ $pkg }++ ) {
         local $CPAN::Config->{makepl_arg} = '--bootstrap=' . __absolute_path( $self->_full_module_path( $pkg ));
         CPAN::Shell->install( 'local::lib' );
     }
@@ -329,7 +354,8 @@ sub _install_deps {
     }
 
     foreach my $dep ( @deps ) {
-        CPAN::Shell->install( $dep );
+        CPAN::Shell->install( $dep ) if $mode eq 'normal';
+        CPAN::Shell->force( 'install', $dep ) if $mode eq 'force';
     }
 
     # Be kind rewind.
